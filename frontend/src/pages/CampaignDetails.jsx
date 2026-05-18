@@ -62,158 +62,131 @@ const CampaignDetails = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-12">
+    <div className="max-w-3xl mx-auto px-4 py-12 space-y-12">
       <button 
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-500 hover:text-primary-600 font-medium transition-colors"
+        className="flex items-center gap-2 text-zinc-500 hover:text-black font-medium transition-colors"
       >
         <ArrowLeft size={20} />
         Back
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-        {/* Left Column: Media & Description */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="aspect-video rounded-3xl overflow-hidden shadow-2xl">
-            <img 
-              src={campaign.image_url} 
-              alt={campaign.title} 
-              className="w-full h-full object-cover"
-            />
-          </div>
+      {/* Hero Image */}
+      <div className="aspect-[21/9] rounded-[2rem] overflow-hidden shadow-xl bg-zinc-100 relative">
+        <img 
+          src={campaign.image_url} 
+          alt={campaign.title} 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute top-4 left-4 px-4 py-1.5 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-black uppercase tracking-widest flex items-center gap-2">
+          <ShieldCheck size={14} />
+          Verified NGO
+        </div>
+      </div>
 
-          <div className="space-y-6">
-            <h1 className="text-4xl font-extrabold text-slate-900 leading-tight">
-              {campaign.title}
-            </h1>
-            
-            <div className="flex flex-wrap gap-4 items-center py-4 border-y border-slate-100">
-               <div className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 rounded-full text-sm font-bold">
-                 <ShieldCheck size={18} />
-                 Verified NGO
-               </div>
-               <span className="text-slate-400">|</span>
-               <div className="text-sm text-slate-500">
-                 Created on {new Date(campaign.created_at).toLocaleDateString()}
-               </div>
-            </div>
+      {/* Header Info */}
+      <div className="text-center space-y-6">
+        <h1 className="text-4xl sm:text-5xl font-black text-black leading-tight">
+          {campaign.title}
+        </h1>
+        
+        <div className="flex items-center justify-center gap-4 text-sm text-zinc-500 font-medium">
+          <span>Created on {new Date(campaign.created_at).toLocaleDateString()}</span>
+          <span>•</span>
+          <span className="flex items-center gap-1 text-black font-bold">
+            <Heart size={14} fill="currentColor" /> {donations.length} Supporters
+          </span>
+        </div>
+      </div>
 
-            <div className="prose prose-slate max-w-none">
-              <p className="text-lg text-slate-600 leading-relaxed">
-                {campaign.description}
-              </p>
-              <p className="text-lg text-slate-600 leading-relaxed mt-4">
-                This campaign is focused on providing immediate relief to the victims of the recent disaster. Your contributions will be used for essential supplies including food, clean water, medical aid, and temporary shelter.
-              </p>
-            </div>
-
-            <div className="space-y-6 pt-8">
-              <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                <History className="text-primary-600" />
-                Recent Donations
-              </h2>
-              <div className="space-y-4">
-                {donations.length > 0 ? donations.slice(0, 5).map((d) => (
-                  <div key={d.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center font-bold text-slate-500">
-                        {d.id.slice(0, 1)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900">Anonymous Donor</p>
-                        <p className="text-xs text-slate-400 font-mono truncate w-32">{d.tx_hash}</p>
-                      </div>
-                    </div>
-                    <span className="font-bold text-primary-600">${d.amount.toLocaleString()}</span>
-                  </div>
-                )) : (
-                  <p className="text-slate-400 italic">No donations yet. Be the first to help!</p>
-                )}
-              </div>
-            </div>
-          </div>
+      {/* Progress & Donate Box */}
+      <div className="bg-zinc-50 rounded-[2.5rem] p-8 sm:p-12 space-y-8 border border-zinc-100">
+        <div className="space-y-4 text-center">
+           <div className="flex flex-col items-center justify-center gap-2">
+             <span className="text-5xl font-black text-black">${campaign.raised_amount.toLocaleString()}</span>
+             <span className="text-zinc-500 font-medium text-lg">raised of ${campaign.goal_amount.toLocaleString()} goal</span>
+           </div>
+           
+           <div className="w-full h-3 bg-zinc-200 rounded-full overflow-hidden my-6">
+             <div 
+               className="h-full bg-black rounded-full transition-all duration-1000"
+               style={{ width: `${progress}%` }}
+             />
+           </div>
         </div>
 
-        {/* Right Column: Donation Card */}
-        <div className="space-y-6">
-          <div className="sticky top-24 bg-white rounded-[2rem] p-8 border border-slate-100 shadow-xl space-y-8">
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <div>
-                  <span className="text-3xl font-extrabold text-slate-900">${campaign.raised_amount.toLocaleString()}</span>
-                  <span className="text-slate-400 font-medium ml-2">raised of ${campaign.goal_amount.toLocaleString()}</span>
+        <div className="max-w-md mx-auto space-y-4">
+           <form onSubmit={handleDonate} className="space-y-4">
+             <div className="relative">
+               <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-zinc-400">$</span>
+               <input 
+                 type="number"
+                 placeholder="0.00"
+                 value={donationAmount}
+                 onChange={(e) => setDonationAmount(e.target.value)}
+                 className="w-full pl-12 pr-6 py-5 bg-white border-2 border-transparent focus:border-black rounded-[2rem] text-2xl font-black focus:outline-none transition-all text-center shadow-sm"
+               />
+             </div>
+             
+             <Button 
+               type="submit" 
+               className="w-full h-16 text-lg rounded-full" 
+               loading={isDonating}
+             >
+               Donate Now
+             </Button>
+           </form>
+
+           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+             <div className="scale-90 origin-left">
+               <ConnectButton label="Connect Wallet" accountStatus="avatar" chainStatus="icon" showBalance={false} />
+             </div>
+             <div className="flex items-center gap-1 text-xs text-zinc-500 font-bold uppercase tracking-widest">
+               <ShieldCheck size={14} className="text-black" />
+               Secure Tx
+             </div>
+           </div>
+        </div>
+      </div>
+
+      {/* Description & History */}
+      <div className="space-y-12 pt-8">
+        <div className="prose prose-zinc prose-lg max-w-none text-center sm:text-left">
+          <p className="text-zinc-600 leading-relaxed font-medium">
+            {campaign.description}
+          </p>
+          <p className="text-zinc-600 leading-relaxed font-medium mt-4">
+            This campaign is focused on providing immediate relief to the victims of the recent disaster. Your contributions will be used for essential supplies including food, clean water, medical aid, and temporary shelter. We guarantee 100% transparency with zero middleman fees.
+          </p>
+        </div>
+
+        <div className="space-y-6 pt-12 border-t border-zinc-100">
+          <h2 className="text-2xl font-black text-black flex items-center justify-center sm:justify-start gap-2">
+            <History />
+            Recent Donations
+          </h2>
+          <div className="space-y-4">
+            {donations.length > 0 ? donations.slice(0, 5).map((d) => (
+              <div key={d.id} className="flex items-center justify-between p-6 bg-zinc-50 rounded-3xl group transition-all hover:bg-zinc-100">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center font-bold text-black shadow-sm">
+                    {d.id.slice(0, 1)}
+                  </div>
+                  <div>
+                    <p className="text-base font-bold text-black">Anonymous Donor</p>
+                    <p className="text-xs text-zinc-400 font-mono tracking-wider">{d.tx_hash.slice(0, 12)}...</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                   <span className="font-black text-xl text-black">+${d.amount.toLocaleString()}</span>
+                   <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-1">Confirmed</p>
                 </div>
               </div>
-              <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-primary-500 rounded-full transition-all duration-1000 shadow-[0_0_15px_rgba(14,165,233,0.5)]"
-                  style={{ width: `${progress}%` }}
-                />
+            )) : (
+              <div className="py-12 text-center bg-zinc-50 rounded-3xl">
+                <p className="text-zinc-500 font-medium">No donations yet. Be the first to help!</p>
               </div>
-              <div className="flex justify-between text-sm font-bold text-slate-500">
-                <span>{donations.length} Donations</span>
-                <span>{Math.round(progress)}% Complete</span>
-              </div>
-            </div>
-
-            <div className="space-y-4 pt-4 border-t border-slate-50">
-               <div className="bg-slate-50 p-4 rounded-2xl flex items-center justify-between">
-                 <div className="flex items-center gap-3">
-                   <div className="p-2 bg-white rounded-lg shadow-sm">
-                     <Wallet size={20} className="text-slate-600" />
-                   </div>
-                   <span className="text-sm font-semibold text-slate-700">Wallet</span>
-                 </div>
-                 <ConnectButton label="Connect" accountStatus="avatar" chainStatus="icon" showBalance={false} />
-               </div>
-
-               <form onSubmit={handleDonate} className="space-y-4">
-                 <div className="relative">
-                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-slate-400">$</span>
-                   <input 
-                     type="number"
-                     placeholder="0.00"
-                     value={donationAmount}
-                     onChange={(e) => setDonationAmount(e.target.value)}
-                     className="w-full pl-8 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-primary-500 focus:bg-white rounded-2xl text-xl font-bold focus:outline-none transition-all"
-                   />
-                 </div>
-                 <Button 
-                   type="submit" 
-                   className="w-full h-16 text-lg rounded-2xl" 
-                   loading={isDonating}
-                 >
-                   Donate Now
-                 </Button>
-               </form>
-
-               <div className="flex items-center gap-2 justify-center text-xs text-slate-400 font-medium">
-                 <ShieldCheck size={14} className="text-green-500" />
-                 Secure Blockchain Transaction
-               </div>
-            </div>
-
-            <div className="flex gap-3">
-              <Button variant="secondary" className="flex-grow gap-2">
-                <Share2 size={18} />
-                Share
-              </Button>
-              <Button variant="secondary" className="w-16">
-                <Heart size={18} />
-              </Button>
-            </div>
-          </div>
-
-          <div className="bg-primary-50 p-6 rounded-2xl border border-primary-100 flex gap-4">
-            <div className="h-10 w-10 bg-primary-100 rounded-full flex items-center justify-center shrink-0">
-               <Heart className="text-primary-600" size={20} fill="currentColor" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-primary-900">100% Goes to the Cause</p>
-              <p className="text-xs text-primary-700 mt-1 leading-relaxed">
-                We don't take any platform fees. All operational costs are covered by corporate sponsors.
-              </p>
-            </div>
+            )}
           </div>
         </div>
       </div>

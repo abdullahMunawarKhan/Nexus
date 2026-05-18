@@ -45,7 +45,7 @@ const Login = () => {
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-4 bg-slate-50">
       <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-3xl shadow-xl border border-slate-100">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-primary-100 text-primary-600 flex items-center justify-center rounded-2xl mb-4">
+          <div className="mx-auto h-12 w-12 bg-zinc-100 text-black flex items-center justify-center rounded-2xl mb-4">
             <LogIn size={28} />
           </div>
           <h2 className="text-3xl font-bold text-slate-900">Welcome Back</h2>
@@ -72,10 +72,10 @@ const Login = () => {
 
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2 text-slate-600 cursor-pointer">
-              <input type="checkbox" className="rounded border-slate-300 text-primary-600 focus:ring-primary-500" />
+              <input type="checkbox" className="rounded border-zinc-300 text-black focus:ring-black" />
               <span>Remember me</span>
             </label>
-            <a href="#" className="font-semibold text-primary-600 hover:text-primary-700">Forgot password?</a>
+            <a href="#" className="font-semibold text-black hover:underline">Forgot password?</a>
           </div>
 
           <Button type="submit" className="w-full" size="lg" loading={loading}>
@@ -85,7 +85,7 @@ const Login = () => {
 
         <p className="text-center text-sm text-slate-500">
           Don't have an account?{' '}
-          <Link to="/signup" className="font-bold text-primary-600 hover:text-primary-700">
+          <Link to="/signup" className="font-bold text-black hover:underline">
             Create an account
           </Link>
         </p>

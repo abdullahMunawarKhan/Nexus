@@ -21,10 +21,10 @@ const Transparency = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Total Value Distributed', value: `$${totalDonations.toLocaleString()}`, color: 'bg-primary-50 text-primary-600' },
-          { label: 'Active Campaigns', value: campaigns.length, color: 'bg-green-50 text-green-600' },
-          { label: 'Platform Uptime', value: '100%', color: 'bg-blue-50 text-blue-600' },
-          { label: 'Network Nodes', value: '14,281', color: 'bg-purple-50 text-purple-600' },
+          { label: 'Total Value Distributed', value: `$${totalDonations.toLocaleString()}`, color: 'bg-zinc-100 text-zinc-900' },
+          { label: 'Active Campaigns', value: campaigns.length, color: 'bg-zinc-100 text-zinc-900' },
+          { label: 'Platform Uptime', value: '100%', color: 'bg-zinc-100 text-zinc-900' },
+          { label: 'Network Nodes', value: '14,281', color: 'bg-zinc-100 text-zinc-900' },
         ].map((stat, i) => (
           <div key={i} className={`p-6 rounded-3xl ${stat.color} flex flex-col items-center justify-center text-center space-y-1`}>
             <span className="text-sm font-bold opacity-70">{stat.label}</span>
@@ -38,7 +38,7 @@ const Transparency = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <History className="text-primary-600" />
+              <History className="text-black" />
               Public Ledger
             </h2>
             <div className="relative w-64">
@@ -46,7 +46,7 @@ const Transparency = () => {
               <input 
                 type="text" 
                 placeholder="Search tx hash..." 
-                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500"
+                className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-black"
               />
             </div>
           </div>
@@ -68,7 +68,7 @@ const Transparency = () => {
                     return (
                       <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 font-mono text-sm text-primary-600">
+                          <div className="flex items-center gap-2 font-mono text-sm text-zinc-900">
                             <span className="truncate w-32">{tx.tx_hash}</span>
                             <ExternalLink size={14} className="shrink-0" />
                           </div>
@@ -80,7 +80,7 @@ const Transparency = () => {
                           <span className="text-sm font-bold text-slate-900">${tx.amount.toLocaleString()}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                          <span className="px-2 py-1 bg-zinc-100 text-zinc-900 rounded-full text-[10px] font-bold uppercase tracking-wider">
                             Confirmed
                           </span>
                         </td>
@@ -101,24 +101,24 @@ const Transparency = () => {
 
         {/* Sidebar Info */}
         <div className="space-y-6">
-          <div className="bg-slate-900 rounded-3xl p-8 text-white space-y-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary-600/20 blur-3xl" />
+          <div className="bg-black rounded-3xl p-8 text-white space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 blur-3xl" />
             <h3 className="text-xl font-bold flex items-center gap-2">
-              <ShieldCheck className="text-primary-500" />
+              <ShieldCheck className="text-zinc-400" />
               Verified NGO List
             </h3>
-            <p className="text-slate-400 text-sm leading-relaxed">
+            <p className="text-zinc-500 text-sm leading-relaxed">
               We only partner with NGOs that meet our strict transparency standards. All partner accounts are multi-sig wallets managed by verified humanitarian leaders.
             </p>
             <div className="space-y-4">
               {['Red Cross International', 'Save the Children', 'Global Relief Fund'].map((ngo, i) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
                   <span className="text-sm font-medium">{ngo}</span>
-                  <ShieldCheck size={16} className="text-primary-500" />
+                  <ShieldCheck size={16} className="text-zinc-500" />
                 </div>
               ))}
             </div>
-            <button className="w-full py-3 bg-primary-600 hover:bg-primary-700 rounded-xl font-bold transition-all">
+            <button className="w-full py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-bold transition-all">
               Apply as NGO
             </button>
           </div>

@@ -4,7 +4,38 @@ const getDb = () => {
   const data = localStorage.getItem(STORAGE_KEY);
   return data ? JSON.parse(data) : {
     users: [],
-    ngos: [],
+    ngos: [
+      { 
+        id: 'ngo-1', 
+        name: 'Global Relief Foundation', 
+        email: 'contact@grf.org', 
+        verification_status: 'verified',
+        status: 'verified',
+        joined: '2024-01-15',
+        description: 'Dedicated to providing worldwide humanitarian aid and emergency relief to victims of natural disasters and conflict.',
+        wallet_address: '0x71C7656EC7ab88b098defB751B7401B5f6d8976F'
+      },
+      { 
+        id: 'ngo-2', 
+        name: 'Direct Aid Network', 
+        email: 'help@dan.com', 
+        verification_status: 'pending',
+        status: 'pending',
+        joined: '2024-05-10',
+        description: 'Empowering local communities with direct resources and micro-grants for rapid emergency response.',
+        wallet_address: '0x2198301820A38102A88aA8bcF988F781a9862cd5'
+      },
+      { 
+        id: 'ngo-3', 
+        name: 'World Care Inc', 
+        email: 'admin@worldcare.io', 
+        verification_status: 'rejected',
+        status: 'rejected',
+        joined: '2024-03-22',
+        description: 'Focused on long-term sustainability, clean water systems, and infrastructure rebuilding in disaster zones.',
+        wallet_address: '0x3213c382103fA98288b88Ba8E98B1a76C298cf22'
+      }
+    ],
     campaigns: [
       {
         id: '1',
@@ -50,9 +81,18 @@ export const mockDb = {
   
   // NGOs
   getNgos: () => getDb().ngos,
+  getNgoById: (id) => getDb().ngos.find(n => n.id === id),
   addNgo: (ngo) => {
     const db = getDb();
-    const newNgo = { ...ngo, id: crypto.randomUUID(), verification_status: 'pending' };
+    const newNgo = { 
+      ...ngo, 
+      id: ngo.id || crypto.randomUUID(), 
+      verification_status: 'pending',
+      status: 'pending',
+      joined: new Date().toISOString().split('T')[0],
+      description: ngo.description || 'Newly registered NGO. Mission details pending.',
+      wallet_address: ngo.wallet_address || ''
+    };
     db.ngos.push(newNgo);
     saveDb(db);
     return newNgo;
@@ -62,8 +102,19 @@ export const mockDb = {
     const index = db.ngos.findIndex(n => n.id === id);
     if (index !== -1) {
       db.ngos[index].verification_status = status;
+      db.ngos[index].status = status;
       saveDb(db);
     }
+  },
+  updateNgoDetails: (id, details) => {
+    const db = getDb();
+    const index = db.ngos.findIndex(n => n.id === id);
+    if (index !== -1) {
+      db.ngos[index] = { ...db.ngos[index], ...details };
+      saveDb(db);
+      return db.ngos[index];
+    }
+    return null;
   },
 
   // Campaigns

@@ -16,7 +16,7 @@ const Button = ({
     secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 active:scale-95',
     outline: 'bg-transparent border-2 border-primary-600 text-primary-600 hover:bg-primary-50 active:scale-95',
     ghost: 'bg-transparent text-slate-600 hover:bg-slate-100',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
+    danger: 'bg-black text-white hover:bg-zinc-800',
   };
 
   const sizes = {

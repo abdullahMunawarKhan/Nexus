@@ -3,6 +3,7 @@ import { mockDb } from '../services/mockDb';
 import { useAuth } from '../context/AuthContext';
 import CampaignCard from '../components/CampaignCard';
 import { Wallet, History, Heart, ArrowUpRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const DonorDashboard = () => {
   const { user } = useAuth();
@@ -11,100 +12,78 @@ const DonorDashboard = () => {
   const totalDonated = myDonations.reduce((acc, d) => acc + d.amount, 0);
 
   return (
-    <div className="space-y-8">
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center">
-            <Heart size={24} fill="currentColor" />
-          </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Donated</p>
-            <p className="text-2xl font-bold text-slate-900">${totalDonated.toLocaleString()}</p>
-          </div>
+    <div className="max-w-3xl mx-auto space-y-16 py-8">
+      {/* Welcome & Stats */}
+      <div className="text-center space-y-10">
+        <div className="space-y-3">
+          <h1 className="text-4xl font-black tracking-tight text-black">Welcome back, {user?.full_name}</h1>
+          <p className="text-lg text-zinc-500">Here is a summary of your impact on the network.</p>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center">
-            <History size={24} />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="flex flex-col items-center justify-center p-8 bg-zinc-50 rounded-[2rem]">
+            <Heart size={28} className="mb-4 text-black" fill="currentColor" />
+            <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-1">Total Donated</p>
+            <p className="text-3xl font-black text-black">${totalDonated.toLocaleString()}</p>
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Donations Made</p>
-            <p className="text-2xl font-bold text-slate-900">{myDonations.length}</p>
-          </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="h-12 w-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
-            <Wallet size={24} />
+          <div className="flex flex-col items-center justify-center p-8 bg-zinc-50 rounded-[2rem]">
+            <History size={28} className="mb-4 text-black" />
+            <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-1">Donations</p>
+            <p className="text-3xl font-black text-black">{myDonations.length}</p>
           </div>
-          <div>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Impact Score</p>
-            <p className="text-2xl font-bold text-slate-900">84/100</p>
+
+          <div className="flex flex-col items-center justify-center p-8 bg-zinc-50 rounded-[2rem]">
+            <Wallet size={28} className="mb-4 text-black" />
+            <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-1">Impact Score</p>
+            <p className="text-3xl font-black text-black">84/100</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Donation History */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-slate-900" id="history">My Donation History</h3>
-            <button className="text-sm font-bold text-primary-600 hover:text-primary-700">View All</button>
-          </div>
-
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-             {myDonations.length > 0 ? (
-               <div className="divide-y divide-slate-50">
-                 {myDonations.map((d) => {
-                   const campaign = campaigns.find(c => c.id === d.campaign_id);
-                   return (
-                     <div key={d.id} className="p-4 sm:p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                        <div className="flex items-center gap-4">
-                          <img src={campaign?.image_url} alt="" className="w-12 h-12 rounded-xl object-cover" />
-                          <div>
-                            <p className="font-bold text-slate-900">{campaign?.title}</p>
-                            <p className="text-xs text-slate-400 font-mono">{d.tx_hash.slice(0, 10)}...</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-primary-600">+${d.amount.toLocaleString()}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{new Date(d.created_at).toLocaleDateString()}</p>
-                        </div>
-                     </div>
-                   );
-                 })}
-               </div>
-             ) : (
-               <div className="py-20 text-center space-y-4">
-                 <div className="h-16 w-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto">
-                    <History size={32} />
-                 </div>
-                 <p className="text-slate-500 font-medium">No donations yet.</p>
-               </div>
-             )}
-          </div>
+      {/* Donation History */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-4">
+          <h3 className="text-2xl font-black text-black">Donation History</h3>
+          <button className="text-sm font-bold text-zinc-500 hover:text-black transition-colors">View All</button>
         </div>
 
-        {/* Suggested Campaigns */}
-        <div className="space-y-6">
-          <h3 className="text-xl font-bold text-slate-900">Recommended for You</h3>
-          <div className="space-y-4">
-            {campaigns.slice(0, 2).map((campaign) => (
-              <div key={campaign.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm group">
-                <div className="relative h-32 rounded-2xl overflow-hidden mb-4">
-                  <img src={campaign.image_url} alt="" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                </div>
-                <h4 className="font-bold text-slate-900 mb-1">{campaign.title}</h4>
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-xs font-bold text-primary-600">${campaign.raised_amount.toLocaleString()} raised</span>
-                  <button className="p-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-all">
-                    <ArrowUpRight size={18} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="bg-white">
+           {myDonations.length > 0 ? (
+             <div className="divide-y divide-zinc-100">
+               {myDonations.map((d) => {
+                 const campaign = campaigns.find(c => c.id === d.campaign_id);
+                 return (
+                   <div key={d.id} className="py-6 flex items-center justify-between group">
+                      <div className="flex items-center gap-6">
+                        <img src={campaign?.image_url} alt="" className="w-16 h-16 rounded-2xl object-cover shadow-sm group-hover:scale-105 transition-transform" />
+                        <div>
+                          <p className="text-lg font-bold text-black">{campaign?.title}</p>
+                          <p className="text-sm text-zinc-400 font-mono mt-1">Tx: {d.tx_hash.slice(0, 16)}...</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xl font-black text-black">+${d.amount.toLocaleString()}</p>
+                        <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">{new Date(d.created_at).toLocaleDateString()}</p>
+                      </div>
+                   </div>
+                 );
+               })}
+             </div>
+           ) : (
+             <div className="py-20 text-center space-y-6 border border-zinc-100 rounded-[2rem] bg-zinc-50">
+               <div className="h-20 w-20 bg-white text-zinc-300 rounded-full flex items-center justify-center mx-auto shadow-sm">
+                  <History size={32} />
+               </div>
+               <div className="space-y-2">
+                 <p className="text-lg font-bold text-black">No donations yet.</p>
+                 <p className="text-zinc-500">Your contribution can save lives today.</p>
+               </div>
+               <Link to="/" className="inline-block mt-4 px-8 py-3 bg-black text-white font-bold rounded-full hover:bg-zinc-800 transition-colors">
+                 Find a Campaign
+               </Link>
+             </div>
+           )}
         </div>
       </div>
     </div>

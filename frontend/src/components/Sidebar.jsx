@@ -47,10 +47,10 @@ const Sidebar = ({ isOpen, toggle }) => {
   const links = user?.role === 'donor' ? donorLinks : (user?.role === 'ngo' ? ngoLinks : adminLinks);
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-slate-400 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-black text-zinc-400 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex flex-col h-full">
-        <div className="flex items-center gap-2 p-6 text-white border-b border-slate-800">
-          <Heart className="h-6 w-6 text-primary-500" fill="currentColor" />
+        <div className="flex items-center gap-2 p-6 text-white border-b border-zinc-900">
+          <Heart className="h-6 w-6 text-white" fill="currentColor" />
           <span className="font-bold text-lg">Disaster Relief</span>
         </div>
 
@@ -60,7 +60,7 @@ const Sidebar = ({ isOpen, toggle }) => {
               key={link.name}
               to={link.path}
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-primary-600 text-white shadow-lg shadow-primary-900/20' : 'hover:bg-slate-800 hover:text-white'}`
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${isActive ? 'bg-white text-black shadow-lg' : 'hover:bg-zinc-900 hover:text-white'}`
               }
             >
               <link.icon size={20} />
@@ -69,9 +69,9 @@ const Sidebar = ({ isOpen, toggle }) => {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-slate-800 space-y-4">
-          <div className="px-2 py-3 bg-slate-800/50 rounded-xl">
-             <div className="text-xs text-slate-500 mb-2 px-2 uppercase font-bold tracking-wider">Wallet</div>
+        <div className="p-4 border-t border-zinc-900 space-y-4">
+          <div className="px-2 py-3 bg-zinc-900/50 rounded-xl">
+             <div className="text-xs text-zinc-500 mb-2 px-2 uppercase font-bold tracking-wider">Wallet</div>
              <div className="flex justify-center scale-90 origin-left">
                 <ConnectButton label="Connect" accountStatus="avatar" chainStatus="icon" showBalance={false} />
              </div>
@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, toggle }) => {
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-red-950/30 hover:text-red-400 transition-all text-slate-400"
+            className="flex items-center gap-3 px-4 py-3 w-full rounded-xl hover:bg-zinc-800 hover:text-white transition-all text-zinc-400"
           >
             <LogOut size={20} />
             <span className="font-medium">Logout</span>

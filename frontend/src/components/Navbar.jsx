@@ -43,7 +43,7 @@ const Navbar = () => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-slate-600 hover:text-red-600 transition-colors flex items-center gap-1"
+                  className="text-slate-600 hover:text-black transition-colors flex items-center gap-1"
                 >
                   <LogOut size={18} />
                   <span>Logout</span>
@@ -53,13 +53,13 @@ const Navbar = () => {
               <div className="flex items-center gap-3">
                 <Link 
                   to="/login" 
-                  className="px-4 py-2 text-slate-600 hover:text-primary-600 transition-colors"
+                  className="px-4 py-2 text-slate-600 hover:text-black transition-colors"
                 >
                   Login
                 </Link>
                 <Link 
                   to="/signup" 
-                  className="px-5 py-2.5 bg-primary-600 text-white rounded-full hover:bg-primary-700 transition-all shadow-md hover:shadow-lg active:scale-95"
+                  className="px-5 py-2.5 bg-black text-white rounded-full hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg active:scale-95"
                 >
                   Join Us
                 </Link>
@@ -87,13 +87,13 @@ const Navbar = () => {
           <div className="pt-4 border-t border-slate-100 space-y-4">
             {user ? (
               <>
-                <Link to={`/${user.role}-dashboard`} className="block text-primary-600 font-medium">Dashboard</Link>
-                <button onClick={handleLogout} className="block text-red-600">Logout</button>
+                <Link to={`/${user.role}-dashboard`} className="block text-black font-medium">Dashboard</Link>
+                <button onClick={handleLogout} className="block text-zinc-600">Logout</button>
               </>
             ) : (
               <>
                 <Link to="/login" className="block text-slate-600">Login</Link>
-                <Link to="/signup" className="block w-full py-3 bg-primary-600 text-white text-center rounded-xl font-semibold">Join Us</Link>
+                <Link to="/signup" className="block w-full py-3 bg-black text-white text-center rounded-xl font-semibold">Join Us</Link>
               </>
             )}
           </div>

@@ -15,14 +15,14 @@ const CampaignCard = ({ campaign }) => {
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
         />
         <div className="absolute top-4 left-4">
-          <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-primary-600 shadow-sm uppercase tracking-wider">
+          <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-black shadow-sm uppercase tracking-wider">
             Active
           </span>
         </div>
       </div>
       
       <div className="p-6 flex flex-col flex-grow">
-        <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-primary-600 transition-colors">
+        <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-black transition-colors">
           {campaign.title}
         </h3>
         <p className="text-slate-500 text-sm line-clamp-2 mb-6">
@@ -33,11 +33,11 @@ const CampaignCard = ({ campaign }) => {
           <div className="space-y-2">
             <div className="flex justify-between text-xs font-bold">
               <span className="text-slate-400">Progress</span>
-              <span className="text-primary-600">{Math.round(progress)}%</span>
+              <span className="text-black">{Math.round(progress)}%</span>
             </div>
             <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-primary-500 rounded-full transition-all duration-1000"
+                className="h-full bg-black rounded-full transition-all duration-1000"
                 style={{ width: `${progress}%` }}
               />
             </div>

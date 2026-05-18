@@ -21,6 +21,8 @@ import NgoDashboard from './pages/NgoDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import CampaignDetails from './pages/CampaignDetails';
 import Transparency from './pages/Transparency';
+import ManageNgo from './pages/ManageNgo';
+import AdminNgoManagement from './pages/AdminNgoManagement';
 
 function App() {
   return (
@@ -63,13 +65,29 @@ function App() {
                   </RoleBasedRoute>
                 } 
               />
+              <Route 
+                path="/admin/ngos" 
+                element={
+                  <RoleBasedRoute allowedRoles={['admin']}>
+                    <AdminNgoManagement />
+                  </RoleBasedRoute>
+                } 
+              />
+              <Route 
+                path="/manage-ngo/:id" 
+                element={
+                  <RoleBasedRoute allowedRoles={['admin', 'ngo']}>
+                    <ManageNgo />
+                  </RoleBasedRoute>
+                } 
+              />
             </Route>
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
-        <Toaster position="top-right" richColors />
+        <Toaster position="top-right" />
       </AuthProvider>
     </Web3Provider>
   );

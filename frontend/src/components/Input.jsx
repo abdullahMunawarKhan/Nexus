@@ -12,14 +12,14 @@ const Input = forwardRef(({ label, error, className, ...props }, ref) => {
       <input
         ref={ref}
         className={twMerge(
-          'w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all placeholder:text-slate-400',
-          error ? 'border-red-500 focus:ring-red-500/10 focus:border-red-500' : '',
+          'w-full px-4 py-3 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-black transition-all placeholder:text-slate-400',
+          error ? 'border-black ring-1 ring-black' : '',
           className
         )}
         {...props}
       />
       {error && (
-        <p className="text-xs font-medium text-red-500 ml-1">{error}</p>
+        <p className="text-xs font-bold text-black ml-1">{error}</p>
       )}
     </div>
   );

@@ -3,24 +3,24 @@
 @tailwind utilities;
 
 :root {
-  --primary: #0ea5e9;
+  --primary: #000000;
   --primary-foreground: #ffffff;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 font-sans antialiased;
+  @apply bg-white text-black font-sans antialiased;
 }
 
 .glass-morphism {
-  @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-xl;
+  @apply bg-white/90 backdrop-blur-md border border-black/10 shadow-xl;
 }
 
 .gradient-bg {
-  @apply bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800;
+  @apply bg-gradient-to-br from-black via-zinc-800 to-zinc-900;
 }
 
 .card-hover {
-  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1;
+  @apply transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border border-transparent hover:border-black/10;
 }
 
 /* Custom scrollbar */
@@ -33,5 +33,5 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 rounded-full hover:bg-slate-400;
+  @apply bg-zinc-300 rounded-full hover:bg-zinc-400;
 }
