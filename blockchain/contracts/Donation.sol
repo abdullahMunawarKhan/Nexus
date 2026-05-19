@@ -3,10 +3,6 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-interface INGORegistry {
-    function isVerifiedNGO(address _ngoWallet) external view returns (bool);
-}
-
 contract Donation {
     struct Campaign {
         uint256 id;
@@ -34,7 +30,6 @@ contract Donation {
     }
 
     IERC20 public donationToken;
-    INGORegistry public ngoRegistry;
     uint256 public campaignCount;
 
     mapping(uint256 => Campaign) public campaigns;
@@ -46,21 +41,15 @@ contract Donation {
     event FundsWithdrawn(uint256 indexed campaignId, uint256 amount);
     event UsageRecordAdded(uint256 indexed campaignId, uint256 amount, string description);
 
-    constructor(address _donationToken, address _ngoRegistry) {
+    constructor(address _donationToken) {
         donationToken = IERC20(_donationToken);
-        ngoRegistry = INGORegistry(_ngoRegistry);
-    }
-
-    modifier onlyVerifiedNGO() {
-        require(ngoRegistry.isVerifiedNGO(msg.sender), "Not a verified NGO");
-        _;
     }
 
     function createCampaign(
         string memory _title,
         string memory _description,
         uint256 _targetAmount
-    ) public onlyVerifiedNGO {
+    ) public {
         campaignCount++;
         campaigns[campaignCount] = Campaign(
             campaignCount,
@@ -80,10 +69,12 @@ contract Donation {
         require(campaigns[_campaignId].active, "Campaign is not active");
         require(_amount > 0, "Amount must be > 0");
 
+        // Note: For UGF integration, the transfer should be handled by UGF's settlement
+        // This function will be called via UGF's sponsored execution
         donationToken.transferFrom(msg.sender, address(this), _amount);
-        
+
         campaigns[_campaignId].raisedAmount += _amount;
-        
+
         donationHistory[_campaignId].push(DonationRecord(
             msg.sender,
             _amount,

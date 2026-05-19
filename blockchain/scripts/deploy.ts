@@ -7,26 +7,39 @@ async function main() {
   const [deployer] = await ethers.getSigners();
   console.log("Deploying contracts with the account:", deployer.address);
 
-  // Deploy MockUSD
-  const MockUSD = await ethers.getContractFactory("MockUSD");
-  const mockUSD = await MockUSD.deploy();
-  await mockUSD.waitForDeployment();
-  const mockUSDAddress = await mockUSD.getAddress();
-  console.log("MockUSD deployed to:", mockUSDAddress);
+  // Option 1: Use official TYI_MOCK_USD (recommended for hackathon/UGF)
+  // Option 2: Deploy custom MockUSD (for local testing)
+  let donationTokenAddress;
+  let tokenType;
 
-  // Deploy NGORegistry
-  const NGORegistry = await ethers.getContractFactory("NGORegistry");
-  const ngoRegistry = await NGORegistry.deploy();
-  await ngoRegistry.waitForDeployment();
-  const ngoRegistryAddress = await ngoRegistry.getAddress();
-  console.log("NGORegistry deployed to:", ngoRegistryAddress);
+  // Check if TYI_MOCK_USD_ADDRESS is set in environment variables
+  const tyiMockUSDAddress = process.env.TYI_MOCK_USD_ADDRESS;
+  
+  if (tyiMockUSDAddress) {
+    donationTokenAddress = tyiMockUSDAddress;
+    tokenType = "TYI_MOCK_USD";
+    console.log("Using TYI_MOCK_USD at:", donationTokenAddress);
+  } else {
+    // Deploy custom MockUSD for local testing
+    const MockUSD = await ethers.getContractFactory("MockUSD");
+    const mockUSD = await MockUSD.deploy();
+    await mockUSD.waitForDeployment();
+    donationTokenAddress = await mockUSD.getAddress();
+    tokenType = "Custom MockUSD";
+    console.log("Custom MockUSD deployed to:", donationTokenAddress);
+  }
 
   // Deploy Donation
   const Donation = await ethers.getContractFactory("Donation");
-  const donation = await Donation.deploy(mockUSDAddress, ngoRegistryAddress);
+  const donation = await Donation.deploy(donationTokenAddress);
   await donation.waitForDeployment();
   const donationAddress = await donation.getAddress();
   console.log("Donation deployed to:", donationAddress);
+
+  console.log("\nDeployment complete!");
+  console.log("Token used:", tokenType);
+  console.log("Token address:", donationTokenAddress);
+  console.log("Donation address:", donationAddress);
 }
 
 main().catch((error) => {
