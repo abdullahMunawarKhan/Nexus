@@ -139,3 +139,166 @@ const Transparency = () => {
 };
 
 export default Transparency;
+
+
+/*import React from 'react';
+import { mockDb } from '../services/mockDb';
+import { ShieldCheck, History, ExternalLink, Search } from 'lucide-react';
+
+const Transparency = () => {
+  const donations = mockDb.getDonations();
+  const campaigns = mockDb.getCampaigns();
+  
+  const totalDonations = campaigns.reduce((acc, c) => acc + c.raised_amount, 0);
+
+  return (
+    <div className="min-h-screen bg-black text-white antialiased font-sans py-16 px-6 lg:px-16">
+      <div className="max-w-7xl mx-auto space-y-12">
+        
+        {/* Header Block *}
+        <div className="text-center space-y-4">
+          <div className="relative inline-block">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white">
+              Transparency <span className="text-lime-400">Dashboard</span>
+            </h1>
+          </div>
+          <p className="text-zinc-400 max-w-2xl mx-auto text-base md:text-lg font-normal leading-relaxed">
+            Live tracking of all platform activities. We ensure every transaction is publicly verifiable on the blockchain network.
+          </p>
+        </div>
+
+        {/* High-Impact Metric Grid Blocks *}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'Total Value Distributed', value: `₹${totalDonations.toLocaleString()}` },
+            { label: 'Active Campaigns', value: campaigns.length },
+            { label: 'Platform Uptime', value: '100%' },
+            { label: 'Network Nodes', value: '14,281' },
+          ].map((stat, i) => (
+            <div 
+              key={i} 
+              className="p-6 rounded-3xl bg-zinc-900/40 border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center text-center space-y-2 shadow-xl"
+            >
+              <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">{stat.label}</span>
+              <span className="text-3xl md:text-4xl font-black text-lime-400 tracking-tight">{stat.value}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Dashboard Split Main Core *}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* Public Ledger Transaction Table Block *}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <h2 className="text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+                <History className="text-lime-400" size={24} />
+                Public Ledger
+              </h2>
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                <input 
+                  type="text" 
+                  placeholder="Search tx hash..." 
+                  className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border border-white/10 rounded-full text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-lime-400/20 focus:border-lime-400 transition"
+                />
+              </div>
+            </div>
+
+            <div className="bg-zinc-950/40 backdrop-blur-2xl rounded-[32px] border border-white/10 shadow-2xl overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/10 text-zinc-400">
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Transaction Hash</th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Campaign</th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Amount</th>
+                      <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {donations.length > 0 ? donations.map((tx) => {
+                      const campaign = campaigns.find(c => c.id === tx.campaign_id);
+                      return (
+                        <tr key={tx.id} className="hover:bg-white/[0.02] transition-colors group">
+                          <td className="px-6 py-5">
+                            <div className="flex items-center gap-2 font-mono text-sm text-zinc-300">
+                              <span className="truncate w-32 group-hover:text-white transition">{tx.tx_hash}</span>
+                              <ExternalLink size={14} className="text-zinc-500 group-hover:text-lime-400 transition" />
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-semibold text-zinc-200">{campaign?.title || 'Unknown Source'}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="text-sm font-black text-white">₹{tx.amount.toLocaleString()}</span>
+                          </td>
+                          <td className="px-6 py-5">
+                            <span className="px-3 py-1 bg-lime-400/10 text-lime-400 border border-lime-400/20 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                              Confirmed
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }) : (
+                      <tr>
+                        <td colSpan="4" className="px-6 py-16 text-center text-zinc-500 font-medium text-sm">
+                          No transactions verified in the public ledger yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Verification Sidebar Panels *}
+          <div className="space-y-6">
+            
+            {/* Verified NGO Panel Cards Wrapper *}
+            <div className="bg-zinc-950/60 backdrop-blur-2xl rounded-[32px] p-8 border border-white/10 shadow-2xl space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-lime-400/5 blur-3xl pointer-events-none" />
+              
+              <h3 className="text-xl font-black tracking-tight flex items-center gap-2.5">
+                <ShieldCheck className="text-lime-400" size={22} />
+                Verified NGO List
+              </h3>
+              <p className="text-zinc-400 text-sm leading-relaxed font-normal">
+                We only partner with entities meeting strict data standards. All profiles utilize automated identity proofs managed by verified humanitarian leaders.
+              </p>
+              
+              <div className="space-y-3">
+                {['Red Cross International', 'Save the Children', 'Global Relief Fund'].map((ngo, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-zinc-900/30 rounded-2xl border border-white/5 hover:border-white/10 transition">
+                    <span className="text-sm font-semibold text-zinc-200">{ngo}</span>
+                    <ShieldCheck size={16} className="text-lime-400" />
+                  </div>
+                ))}
+              </div>
+              
+              <button className="w-full py-4 bg-lime-400 text-black hover:bg-lime-300 rounded-full font-bold text-sm transition shadow-lg">
+                Apply as NGO Verification
+              </button>
+            </div>
+
+            {/* Explorers Ledger Explainer Interface Card *}
+            <div className="bg-zinc-900/40 backdrop-blur-xl rounded-[32px] p-8 border border-white/10 shadow-2xl space-y-4">
+              <h3 className="text-lg font-bold text-white tracking-tight">How to Verify?</h3>
+              <p className="text-zinc-400 text-sm leading-relaxed">
+                Copy any execution transaction cryptographic hash and parse it straight into native blockchain explorers to inspect actual movement paths independently.
+              </p>
+              <div className="p-4 bg-black/40 rounded-2xl border border-dashed border-white/10 font-mono text-xs text-zinc-500 break-all select-all tracking-tight hover:text-zinc-300 transition">
+                0x71C7656EC7ab88b098defB751B7401B5f6d8976F
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default Transparency; */
