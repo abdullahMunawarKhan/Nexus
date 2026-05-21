@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from './context/AuthContext';
 import { Web3Provider } from './lib/web3';
+import { UGFProvider } from '@tychilabs/react-ugf';
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -27,6 +28,7 @@ import AdminNgoManagement from './pages/AdminNgoManagement';
 function App() {
   return (
     <Web3Provider>
+      <UGFProvider mode="testnet">
       <AuthProvider>
         <BrowserRouter>
           <Routes>
@@ -89,6 +91,7 @@ function App() {
         </BrowserRouter>
         <Toaster position="top-right" />
       </AuthProvider>
+      </UGFProvider>
     </Web3Provider>
   );
 }

@@ -1,7 +1,14 @@
 import React from 'react';
 import { Heart, Globe, MessageSquare, Mail } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const Footer = () => {
+  const { user } = useAuth();
+  
+  if (user?.role === 'ngo') {
+    return null;
+  }
+
   return (
     <footer className="bg-black text-zinc-400 py-12 px-4 mt-auto border-t border-white/5">
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">

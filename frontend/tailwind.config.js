@@ -47,8 +47,19 @@ export default {
           950: '#0a0a0a',
         },
       },
+      fontFamily: {
+        sans: ['"Space Grotesk"', 'sans-serif'],
+        display: ['Syne', 'sans-serif'],
+        serif: ['"Playfair Display"', 'serif'],
+      },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'shimmer': 'shimmer 1.5s infinite',
+      },
+      keyframes: {
+        shimmer: {
+          '100%': { transform: 'translateX(100%)' },
+        },
       },
     },
   },

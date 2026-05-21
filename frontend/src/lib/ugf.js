@@ -1,140 +1,364 @@
+/**
+ * UGF (Universal Gas Framework) Service Layer
+ * 
+ * Uses @tychilabs/ugf-testnet-js for low-level UGF operations.
+ * For React component integration, see UGFProvider from @tychilabs/react-ugf in App.jsx.
+ * 
+ * Two integration paths available:
+ * 
+ * 1. React Modal (recommended for simple flows):
+ *    - Wrap app in <UGFProvider mode="testnet">
+ *    - Use useUGFModal() hook → openUGF({ signer, tx, destChainId })
+ *    - SDK handles the entire quote → pay → execute flow in a built-in modal
+ * 
+ * 2. Programmatic (this file - for custom UI flows):
+ *    - Create UGFClient
+ *    - Auth: login with signer
+ *    - Get quote
+ *    - Pay via x402 (sign + submit)
+ *    - Poll/wait for completion
+ *    - Execute the user's transaction with sponsored gas
+ */
+
+import {
+  UGFClient,
+  BASE_SEPOLIA_CHAIN_ID,
+  BASE_SEPOLIA_CHAIN_TYPE,
+  TYI_USD_PAYMENT_COIN,
+} from '@tychilabs/ugf-testnet-js';
 import { CONTRACT_ADDRESSES } from './contracts';
 import DonationABI from './abi/Donation.json';
-import { ethers } from 'ethers';
 import { encodeFunctionData } from 'viem';
 
-// UGF SDK - will be installed via @tychilabs/ugf-testnet-js
-let UGFClient;
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+export { BASE_SEPOLIA_CHAIN_ID, BASE_SEPOLIA_CHAIN_TYPE, TYI_USD_PAYMENT_COIN };
 
 export const UGF_CONFIG = {
-  chainId: 84532, // Base Sepolia
-  network: 'baseSepolia',
-  // Add UGF API key if required
-  // apiKey: process.env.NEXT_PUBLIC_UGF_API_KEY,
+  chainId: BASE_SEPOLIA_CHAIN_ID, // "84532"
+  chainType: BASE_SEPOLIA_CHAIN_TYPE, // "evm"
+  paymentCoin: TYI_USD_PAYMENT_COIN, // "TYI_MOCK_USD"
 };
 
+// ─── Singleton Client ────────────────────────────────────────────────────────
+
+let _ugfClient = null;
+
+/**
+ * Get or create the UGFClient singleton.
+ * Uses testnet defaults (no baseUrl/token needed initially).
+ */
+export function getUGFClient() {
+  if (!_ugfClient) {
+    _ugfClient = new UGFClient();
+  }
+  return _ugfClient;
+}
+
+// ─── Authentication ──────────────────────────────────────────────────────────
+
+/**
+ * Authenticate with UGF using an ethers Signer.
+ * Must be called before requesting quotes or executing transactions.
+ * 
+ * @param {import('ethers').Signer} signer - ethers v6 signer
+ * @returns {Promise<string>} JWT token
+ */
+export async function loginToUGF(signer) {
+  const client = getUGFClient();
+  const token = await client.auth.login(signer);
+  return token;
+}
+
+/**
+ * Check if user is authenticated with UGF.
+ * @returns {boolean}
+ */
+export function isUGFAuthenticated() {
+  const client = getUGFClient();
+  return client.auth.getToken() !== null;
+}
+
+// ─── Transaction Encoding ────────────────────────────────────────────────────
+
+/**
+ * Encode a donateToCampaign call for the Donation contract.
+ * 
+ * @param {bigint|number} campaignId 
+ * @param {bigint} amount - Amount in token base units (wei)
+ * @param {string} message - Donation message
+ * @returns {string} Encoded calldata (hex)
+ */
 export function encodeDonationTransaction(campaignId, amount, message) {
   return encodeFunctionData({
     abi: DonationABI,
     functionName: 'donateToCampaign',
-    args: [campaignId, amount, message],
+    args: [BigInt(campaignId), BigInt(amount), message],
   });
 }
 
-export function getContractAddresses(chainId) {
-  return CONTRACT_ADDRESSES.baseSepolia;
+/**
+ * Encode a donateToCampaignWithPermit call (when permit support is added to contract).
+ * 
+ * @param {bigint|number} campaignId
+ * @param {bigint} amount
+ * @param {string} message
+ * @param {bigint} deadline
+ * @param {number} v
+ * @param {string} r
+ * @param {string} s
+ * @returns {string} Encoded calldata (hex)
+ */
+export function encodeDonationWithPermitTransaction(campaignId, amount, message, deadline, v, r, s) {
+  return encodeFunctionData({
+    abi: DonationABI,
+    functionName: 'donateToCampaignWithPermit',
+    args: [BigInt(campaignId), BigInt(amount), message, BigInt(deadline), v, r, s],
+  });
 }
 
-// UGF Client Factory
-export async function createUGFClient() {
-  if (typeof window === 'undefined') {
-    // Server-side
-    const { UGFClient } = await import('@tychilabs/ugf-testnet-js');
-    return new UGFClient({
-      chainId: UGF_CONFIG.chainId,
-      network: UGF_CONFIG.network,
-    });
-  }
+// ─── Quote ───────────────────────────────────────────────────────────────────
 
-  // Client-side - ensure it's only loaded once
-  if (!UGFClient) {
-    const { UGFClient } = await import('@tychilabs/ugf-testnet-js');
-    return new UGFClient({
-      chainId: UGF_CONFIG.chainId,
-      network: UGF_CONFIG.network,
-    });
-  }
+/**
+ * Request a gas sponsorship quote from UGF.
+ * 
+ * @param {object} params
+ * @param {string} params.payerAddress - The donor's wallet address
+ * @param {string} params.to - Target contract address (Donation contract)
+ * @param {string} params.data - Encoded transaction calldata
+ * @param {string} [params.value='0'] - ETH value (usually '0' for ERC20 donations)
+ * @returns {Promise<import('@tychilabs/ugf-testnet-js').QuoteResponse>}
+ */
+export async function getDonationQuote({ payerAddress, to, data, value = '0' }) {
+  const client = getUGFClient();
 
-  return UGFClient;
+  // Build the tx_object as a JSON string (what UGF expects)
+  const txObject = JSON.stringify({
+    to,
+    value,
+    data,
+  });
+
+  const quote = await client.quote.get({
+    payment_coin: UGF_CONFIG.paymentCoin,
+    payer_address: payerAddress,
+    payment_chain: UGF_CONFIG.chainId,
+    payment_chain_type: UGF_CONFIG.chainType,
+    tx_object: txObject,
+    dest_chain_id: UGF_CONFIG.chainId,
+    dest_chain_type: UGF_CONFIG.chainType,
+  });
+
+  return quote;
 }
 
-// Get UGF Quote
-export async function getUGFQuote(transactionData) {
-  try {
-    const ugf = await createUGFClient();
+// ─── Payment (x402) ─────────────────────────────────────────────────────────
 
-    const quote = await ugf.quote.get({
-      chainId: UGF_CONFIG.chainId,
-      to: transactionData.to,
-      value: transactionData.value || '0',
-      data: transactionData.data,
-      token: CONTRACT_ADDRESSES.baseSepolia.tyiMockUSD,
-      tokenAmount: transactionData.tokenAmount,
-    });
-
-    return quote;
-  } catch (error) {
-    console.error('UGF Quote Error:', error);
-    throw error;
-  }
+/**
+ * Sign and submit an x402 payment for the quote.
+ * This pays the gas fee in TYI_MOCK_USD.
+ * 
+ * @param {import('@tychilabs/ugf-testnet-js').QuoteResponse} quote
+ * @param {import('ethers').Signer} signer
+ * @param {import('ethers').Provider} provider
+ * @returns {Promise<import('@tychilabs/ugf-testnet-js').PaymentSubmitResponse>}
+ */
+export async function payForGas(quote, signer, provider) {
+  const client = getUGFClient();
+  return client.payment.x402.signAndSubmit(quote, signer, provider);
 }
 
-// Execute sponsored transaction
-export async function executeUGFTransaction(quote, signature) {
-  try {
-    const ugf = await createUGFClient();
+// ─── Execution ───────────────────────────────────────────────────────────────
 
-    const tx = await ugf.payment.x402.execute({
-      quote: quote,
-      signature: signature,
-    });
-
-    return tx;
-  } catch (error) {
-    console.error('UGF Execution Error:', error);
-    throw error;
-  }
+/**
+ * Wait for UGF sponsorship to complete, then execute the user's transaction
+ * using the sponsored gas.
+ * 
+ * @param {string} digest - The quote digest (from QuoteResponse)
+ * @param {import('ethers').Signer} signer
+ * @param {Function} buildTx - Async function that returns a TransactionRequest
+ * @param {object} [pollOptions] - Polling options { maxAttempts, intervalMs, onTick }
+ * @returns {Promise<{ userTxHash: string }>}
+ */
+export async function executeSponsoredTransaction(digest, signer, buildTx, pollOptions) {
+  const client = getUGFClient();
+  return client.chains.evm.sponsorAndExecute(digest, signer, buildTx, pollOptions);
 }
 
-// Sponsor and execute directly
-export async function sponsorAndExecuteTransaction(transactionData) {
-  try {
-    const ugf = await createUGFClient();
-
-    const tx = await ugf.chains.evm.sponsorAndExecute({
-      chainId: UGF_CONFIG.chainId,
-      to: transactionData.to,
-      value: transactionData.value || '0',
-      data: transactionData.data,
-      token: CONTRACT_ADDRESSES.baseSepolia.tyiMockUSD,
-      tokenAmount: transactionData.tokenAmount,
-      // Gas limit should be estimated or provided
-      gasLimit: transactionData.gasLimit,
-    });
-
-    return tx;
-  } catch (error) {
-    console.error('UGF Sponsorship Error:', error);
-    throw error;
-  }
+/**
+ * Wait for a sponsored transaction to reach a terminal state.
+ * 
+ * @param {string} digest
+ * @param {object} [pollOptions]
+ * @returns {Promise<import('@tychilabs/ugf-testnet-js').StatusResponse>}
+ */
+export async function waitForCompletion(digest, pollOptions) {
+  const client = getUGFClient();
+  return client.chains.evm.waitForCompletion(digest, pollOptions);
 }
 
-// Error handler
+/**
+ * Check the status of a UGF transaction.
+ * 
+ * @param {string} digest
+ * @returns {Promise<import('@tychilabs/ugf-testnet-js').StatusResponse>}
+ */
+export async function getTransactionStatus(digest) {
+  const client = getUGFClient();
+  return client.status.get(digest);
+}
+
+// ─── Registry ────────────────────────────────────────────────────────────────
+
+/**
+ * Get the payment option details for TYI_MOCK_USD.
+ */
+export async function getPaymentOption() {
+  const client = getUGFClient();
+  return client.registry.getOption(UGF_CONFIG.paymentCoin);
+}
+
+/**
+ * Get chain entry for TYI_MOCK_USD on Base Sepolia.
+ */
+export async function getChainEntry() {
+  const client = getUGFClient();
+  return client.registry.getChainEntry(UGF_CONFIG.paymentCoin, UGF_CONFIG.chainId);
+}
+
+// ─── High-Level Donation Flow ────────────────────────────────────────────────
+
+/**
+ * Complete UGF donation flow (programmatic - for custom UI).
+ * 
+ * Steps:
+ * 1. Authenticate with UGF (if not already)
+ * 2. Encode the donation transaction
+ * 3. Get a gas sponsorship quote
+ * 4. Pay the gas fee via x402
+ * 5. Execute the sponsored transaction
+ * 
+ * @param {object} params
+ * @param {import('ethers').Signer} params.signer - ethers v6 signer
+ * @param {import('ethers').Provider} params.provider - ethers v6 provider
+ * @param {number|bigint} params.campaignId
+ * @param {string} params.amount - Human-readable amount (e.g. "10" for 10 MockUSD)
+ * @param {string} params.message - Donation message
+ * @param {Function} [params.onProgress] - Progress callback: (step, data) => void
+ * @returns {Promise<{ userTxHash: string, digest: string }>}
+ */
+export async function donateWithUGF({ signer, provider, campaignId, amount, message, onProgress }) {
+  const progress = onProgress || (() => {});
+  const donationContractAddress = CONTRACT_ADDRESSES.baseSepolia.donation;
+  const payerAddress = await signer.getAddress();
+
+  // 1. Authenticate
+  progress('auth', { status: 'Authenticating with UGF...' });
+  if (!isUGFAuthenticated()) {
+    await loginToUGF(signer);
+  }
+  progress('auth', { status: 'Authenticated' });
+
+  // 2. Encode transaction
+  progress('encode', { status: 'Preparing transaction...' });
+  const amountWei = BigInt(amount) * BigInt(10 ** 18);
+  const encodedData = encodeDonationTransaction(campaignId, amountWei, message);
+  progress('encode', { status: 'Transaction prepared' });
+
+  // 3. Get quote
+  progress('quote', { status: 'Getting gas sponsorship quote...' });
+  const quote = await getDonationQuote({
+    payerAddress,
+    to: donationContractAddress,
+    data: encodedData,
+  });
+  progress('quote', {
+    status: 'Quote received',
+    paymentAmount: quote.payment_amount,
+    gasAmount: quote.gas_amount,
+    digest: quote.digest,
+    expiresAt: quote.expires_at,
+  });
+
+  // 4. Pay for gas
+  progress('payment', { status: 'Paying gas fee in MockUSD...' });
+  await payForGas(quote, signer, provider);
+  progress('payment', { status: 'Gas fee paid' });
+
+  // 5. Execute sponsored transaction
+  progress('execute', { status: 'Executing donation on-chain...' });
+  const result = await executeSponsoredTransaction(
+    quote.digest,
+    signer,
+    async (s) => ({
+      to: donationContractAddress,
+      data: encodedData,
+      value: 0,
+    }),
+    {
+      maxAttempts: 30,
+      intervalMs: 2000,
+      onTick: (status, attempt) => {
+        progress('execute', {
+          status: `Waiting for sponsorship... (attempt ${attempt})`,
+          txStatus: status.status,
+        });
+      },
+    }
+  );
+
+  progress('complete', {
+    status: 'Donation successful!',
+    userTxHash: result.userTxHash,
+    digest: quote.digest,
+  });
+
+  return {
+    userTxHash: result.userTxHash,
+    digest: quote.digest,
+  };
+}
+
+// ─── Error Handling ──────────────────────────────────────────────────────────
+
+/**
+ * Convert a UGF error into a user-friendly message.
+ * 
+ * @param {Error} error
+ * @returns {Error} User-friendly error
+ */
 export function handleUGFError(error) {
-  console.error('UGF Error:', error);
+  // UGF SDK specific error types
+  if (error?.constructor?.name === 'UGFAuthError') {
+    return new Error('Authentication failed. Please reconnect your wallet and try again.');
+  }
+  if (error?.constructor?.name === 'UGFTimeoutError') {
+    return new Error('Transaction timed out. Please try again.');
+  }
+  if (error?.constructor?.name === 'UGFSignatureError') {
+    return new Error('Signature rejected. Please approve the transaction in your wallet.');
+  }
 
-  if (error.response) {
-    // UGF API responded with error status
-    const status = error.response.status;
-    const data = error.response.data;
-
-    switch (status) {
+  // HTTP-level errors
+  if (error.statusCode) {
+    switch (error.statusCode) {
       case 400:
-        return new Error(`Invalid request: ${data.message || 'Bad request'}`);
+        return new Error(`Invalid request: ${error.message}`);
       case 401:
-        return new Error('Authentication failed. Please check your API key.');
+        return new Error('Authentication expired. Please reconnect.');
       case 403:
         return new Error('Forbidden. Insufficient permissions.');
       case 429:
         return new Error('Too many requests. Please wait and try again.');
       default:
-        return new Error(`UGF API Error: ${data.message || 'Unknown error'}`);
+        return new Error(`UGF Error (${error.statusCode}): ${error.message}`);
     }
-  } else if (error.message) {
-    // Network error or other error
-    return new Error(`Network Error: ${error.message}`);
-  } else {
-    return new Error('Unknown UGF error occurred');
   }
-}
 
+  // Generic errors
+  if (error.message?.includes('user rejected') || error.message?.includes('User denied')) {
+    return new Error('Transaction was rejected by user.');
+  }
+
+  return new Error(error.message || 'An unknown UGF error occurred.');
+}

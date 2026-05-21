@@ -7,57 +7,57 @@ const CampaignCard = ({ campaign }) => {
   const progress = Math.min((campaign.raised_amount / campaign.goal_amount) * 100, 100);
 
   return (
-    <div className="bg-white rounded-3xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col">
-      <div className="relative h-56 overflow-hidden">
+    <div className="bg-zinc-900/40 backdrop-blur-xl rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl hover:border-white/20 transition-all duration-300 group flex flex-col">
+      <div className="relative h-56 overflow-hidden bg-black/50">
         <img 
           src={campaign.image_url} 
           alt={campaign.title}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 opacity-80"
         />
         <div className="absolute top-4 left-4">
-          <span className="px-3 py-1 bg-white/90 backdrop-blur-md rounded-full text-xs font-bold text-black shadow-sm uppercase tracking-wider">
+          <span className="px-3 py-1 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-[10px] font-bold text-white shadow-sm uppercase tracking-widest">
             Active
           </span>
         </div>
       </div>
       
       <div className="p-6 flex flex-col flex-grow">
-        <h3 className="text-xl font-bold text-slate-900 mb-2 group-hover:text-black transition-colors">
+        <h3 className="text-xl font-bold text-white mb-2 group-hover:text-zinc-300 transition-colors">
           {campaign.title}
         </h3>
-        <p className="text-slate-500 text-sm line-clamp-2 mb-6">
+        <p className="text-zinc-400 text-sm line-clamp-2 mb-6">
           {campaign.description}
         </p>
         
         <div className="mt-auto space-y-4">
           <div className="space-y-2">
-            <div className="flex justify-between text-xs font-bold">
-              <span className="text-slate-400">Progress</span>
-              <span className="text-black">{Math.round(progress)}%</span>
+            <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+              <span className="text-zinc-500">Progress</span>
+              <span className="text-white">{Math.round(progress)}%</span>
             </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div 
-                className="h-full bg-black rounded-full transition-all duration-1000"
+                className="h-full bg-white rounded-full transition-all duration-1000"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-end pt-2">
               <div>
-                <span className="block text-xs text-slate-400 font-medium">Raised</span>
-                <span className="text-lg font-bold text-slate-900">${campaign.raised_amount.toLocaleString()}</span>
+                <span className="block text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Raised</span>
+                <span className="text-lg font-black text-white">${campaign.raised_amount.toLocaleString()}</span>
               </div>
               <div className="text-right">
-                <span className="block text-xs text-slate-400 font-medium">Goal</span>
-                <span className="text-sm font-semibold text-slate-600">${campaign.goal_amount.toLocaleString()}</span>
+                <span className="block text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Goal</span>
+                <span className="text-sm font-bold text-zinc-300">${campaign.goal_amount.toLocaleString()}</span>
               </div>
             </div>
           </div>
           
-          <Link to={`/campaign/${campaign.id}`} className="block">
-            <Button className="w-full justify-between" variant="secondary">
+          <Link to={`/campaign/${campaign.id}`} className="block pt-2">
+            <button className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white text-white hover:text-black border border-white/10 rounded-xl text-sm font-bold transition-all">
               View Details
-              <ArrowRight size={18} />
-            </Button>
+              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </Link>
         </div>
       </div>
