@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAccount, useWalletClient } from 'wagmi';
-import { BrowserProvider, JsonRpcProvider } from 'ethers';
+import { BrowserProvider } from 'ethers';
 import {
   isDevWalletConnected,
   getDevWalletAddress,
@@ -9,6 +9,7 @@ import {
   isDevWalletEnabled,
   connectDevWallet
 } from './devWallet';
+import { BASE_SEPOLIA_NETWORK, getFallbackProvider } from './providers';
 
 export function useNexusWallet() {
   const wagmiAccount = useAccount();
@@ -31,8 +32,8 @@ export function useNexusWallet() {
 
   const getSigner = useCallback(async () => {
     if (active) {
-      // Connect to Base Sepolia provider for standard RPC actions
-      const provider = new JsonRpcProvider('https://sepolia.base.org');
+      // Connect to Base Sepolia provider with ENS disabled and robust fallbacks
+      const provider = await getFallbackProvider();
       return getDevSigner(provider);
     }
     
@@ -41,15 +42,15 @@ export function useNexusWallet() {
     // Convert wagmi's wallet client to ethers signer
     // wagmiWalletClient exposes an EIP-1193 compatible transport
     try {
-      // Try using the wallet client's transport directly
-      const provider = new BrowserProvider(wagmiWalletClient.transport || wagmiWalletClient);
+      // Try using the wallet client's transport directly, with ENS disabled
+      const provider = new BrowserProvider(wagmiWalletClient.transport || wagmiWalletClient, BASE_SEPOLIA_NETWORK);
       return await provider.getSigner();
     } catch (err) {
       console.warn('Failed to create signer from wallet client transport, trying window.ethereum:', err);
       
-      // Fallback: use window.ethereum if available
+      // Fallback: use window.ethereum if available, with ENS disabled
       if (typeof window !== 'undefined' && window.ethereum) {
-        const provider = new BrowserProvider(window.ethereum);
+        const provider = new BrowserProvider(window.ethereum, BASE_SEPOLIA_NETWORK);
         return await provider.getSigner();
       }
       

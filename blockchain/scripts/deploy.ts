@@ -14,7 +14,7 @@ async function main() {
 
   // Check if TYI_MOCK_USD_ADDRESS is set in environment variables
   // Default: Use official TYI_MOCK_USD from UGF faucet (0x27DC...727e)
-  const tyiMockUSDAddress = process.env.TYI_MOCK_USD_ADDRESS || "0x27DC...727e";
+  const tyiMockUSDAddress = process.env.TYI_MOCK_USD_ADDRESS || "0x27DC1C167AeF232bb1e21073304B526726a8727e";
   
   if (tyiMockUSDAddress) {
     donationTokenAddress = tyiMockUSDAddress;

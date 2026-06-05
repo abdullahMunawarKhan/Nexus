@@ -227,7 +227,7 @@ const campaignSchema = z.object({
 
         const signer = await getSigner();
         const donationContract = new ethers.Contract(
-          CONTRACT_ADDRESSES.baseSepolia.donation,
+          ethers.getAddress(CONTRACT_ADDRESSES.baseSepolia.donation),
           DonationABI,
           signer
         );

@@ -31,6 +31,15 @@ import DonationABI from './abi/Donation.json';
 import MockUSDABI from './abi/MockUSD.json';
 import { encodeFunctionData } from 'viem';
 import { ethers } from 'ethers';
+import { getFallbackProvider } from './providers';
+
+// Global monkeypatch for BigInt serialization in JSON.stringify to prevent
+// "TypeError: Do not know how to serialize a BigInt" in wallet providers.
+if (typeof BigInt !== 'undefined' && !BigInt.prototype.toJSON) {
+  BigInt.prototype.toJSON = function () {
+    return this.toString();
+  };
+}
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -167,7 +176,9 @@ export async function getDonationQuote({ payerAddress, to, data, value = '0' }) 
   const client = getUGFClient();
 
   // Build the tx_object as a JSON string (what UGF expects)
+  // Note: we MUST include 'from' field so that UGF gateway can parse payer details.
   const txObject = JSON.stringify({
+    from: payerAddress,
     to,
     value,
     data,
@@ -286,6 +297,17 @@ export async function donateWithUGF({ signer, provider, campaignId, amount, mess
   const donationContractAddress = CONTRACT_ADDRESSES.baseSepolia.donation;
   const tokenAddress = CONTRACT_ADDRESSES.baseSepolia.tyiMockUSD;
   const payerAddress = await signer.getAddress();
+  const resolvedPayerAddress = ethers.getAddress(payerAddress);
+  const resolvedDonationAddress = ethers.getAddress(donationContractAddress);
+  const resolvedTokenAddress = ethers.getAddress(tokenAddress);
+
+  // TYI_MOCK_USD uses 6 decimals (like USDC), not 18
+  let amountWei;
+  try {
+    amountWei = ethers.parseUnits(amount, 6);
+  } catch {
+    amountWei = BigInt(amount) * BigInt(10 ** 6);
+  }
 
   // 1. Authenticate
   progress('auth', { status: 'Authenticating with UGF...' });
@@ -294,93 +316,46 @@ export async function donateWithUGF({ signer, provider, campaignId, amount, mess
   }
   progress('auth', { status: 'Authenticated' });
 
-  // 2. Obtain EIP-2612 Permit Signature (Gasless Approval)
-  progress('permit_signing', { status: 'Please sign the gasless MockUSD approval in your wallet...' });
-
-  let amountWei;
-  try {
-    amountWei = ethers.parseEther(amount);
-  } catch {
-    amountWei = BigInt(amount) * BigInt(10 ** 18);
-  }
-  
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600); // 1-hour expiration
-  
-  // Connect to the token contract to fetch the current nonce of the payer
+  // 2. Check token allowance and approve if needed
+  progress('approve', { status: 'Checking token allowance...' });
+  const readProvider = await getFallbackProvider();
   const tokenContract = new ethers.Contract(
-    tokenAddress,
-    [
-      'function nonces(address owner) view returns (uint256)',
-      'function name() view returns (string)'
-    ],
-    provider
+    resolvedTokenAddress,
+    MockUSDABI,
+    readProvider
   );
-  
-  let nonce;
-  let tokenName = 'TYI_MOCK_USD';
+
+  let currentAllowance = 0n;
   try {
-    nonce = await tokenContract.nonces(payerAddress);
-  } catch (nonceErr) {
-    console.warn('Could not fetch token nonce directly, defaulting to 0:', nonceErr);
-    nonce = 0n;
-  }
-  
-  try {
-    tokenName = await tokenContract.name();
-  } catch (nameErr) {
-    console.warn('Could not fetch token name, defaulting to TYI_MOCK_USD:', nameErr);
+    currentAllowance = await tokenContract.allowance(resolvedPayerAddress, resolvedDonationAddress);
+  } catch (err) {
+    console.warn('Could not fetch allowance, assuming 0:', err.message);
   }
 
-  // Define Domain and Types for the EIP-712 Signature
-  const domain = {
-    name: tokenName,
-    version: '1',
-    chainId: Number(BASE_SEPOLIA_CHAIN_ID),
-    verifyingContract: tokenAddress,
-  };
+  if (currentAllowance < amountWei) {
+    progress('approve', { status: 'Approving token transfer... Please sign in wallet.' });
 
-  const types = {
-    Permit: [
-      { name: 'owner', type: 'address' },
-      { name: 'spender', type: 'address' },
-      { name: 'value', type: 'uint256' },
-      { name: 'nonce', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-    ],
-  };
+    // Send a standard (non-sponsored) approve transaction
+    // UGF testnet gateway only sponsors verified contracts, so standard ERC-20 approvals must be paid by the user.
+    const tx = await tokenContract.connect(signer).approve(resolvedDonationAddress, amountWei);
+    progress('approve', { status: 'Waiting for approval transaction to confirm...' });
+    await tx.wait();
 
-  const value = {
-    owner: payerAddress,
-    spender: donationContractAddress,
-    value: amountWei,
-    nonce: nonce,
-    deadline: deadline,
-  };
+    progress('approve', { status: 'Token approved!' });
+  } else {
+    progress('approve', { status: 'Token already approved' });
+  }
 
-  // Sign the typed permit data
-  const signature = await signer.signTypedData(domain, types, value);
-  const sig = ethers.Signature.from(signature);
-  progress('permit_signing', { status: 'MockUSD Permit approved!' });
-
-  // 3. Encode transaction with permit
-  progress('encode', { status: 'Preparing transaction...' });
-  const encodedData = encodeDonationWithPermitTransaction(
-    payerAddress,
-    campaignId,
-    amountWei,
-    message,
-    deadline,
-    sig.v,
-    sig.r,
-    sig.s
-  );
+  // 3. Encode donation transaction (standard donateToCampaign, not permit version)
+  progress('encode', { status: 'Preparing donation transaction...' });
+  const encodedData = encodeDonationTransaction(campaignId, amountWei, message);
   progress('encode', { status: 'Transaction prepared' });
 
-  // 4. Get quote
+  // 4. Get quote for donation
   progress('quote', { status: 'Getting gas sponsorship quote...' });
   const quote = await getDonationQuote({
-    payerAddress,
-    to: donationContractAddress,
+    payerAddress: resolvedPayerAddress,
+    to: resolvedDonationAddress,
     data: encodedData,
   });
   progress('quote', {
@@ -396,13 +371,13 @@ export async function donateWithUGF({ signer, provider, campaignId, amount, mess
   await payForGas(quote, signer, provider);
   progress('payment', { status: 'Gas fee paid' });
 
-  // 6. Execute sponsored transaction
+  // 6. Execute sponsored donation transaction
   progress('execute', { status: 'Executing donation on-chain...' });
   const result = await executeSponsoredTransaction(
     quote.digest,
     signer,
     async (s) => ({
-      to: donationContractAddress,
+      to: resolvedDonationAddress,
       data: encodedData,
       value: 0,
     }),
