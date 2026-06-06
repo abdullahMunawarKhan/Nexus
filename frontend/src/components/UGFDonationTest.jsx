@@ -4,9 +4,9 @@ import { useUGFModal } from '@tychilabs/react-ugf';
 import { BrowserProvider, ethers } from 'ethers';
 import Button from './Button';
 import { CONTRACT_ADDRESSES } from '../lib/contracts';
+import MockUSDABI from '../lib/abi/MockUSD.json';
 import {
   encodeDonationTransaction,
-  donateWithUGF,
   handleUGFError,
   BASE_SEPOLIA_CHAIN_ID,
 } from '../lib/ugf';
@@ -26,10 +26,8 @@ export function UGFDonationTest() {
   const [campaignId, setCampaignId] = useState('1');
   const [amount, setAmount] = useState('10');
   const [message, setMessage] = useState('Test donation');
-  const [isLoading, setIsLoading] = useState(false);
   const [txHash, setTxHash] = useState(null);
   const [error, setError] = useState(null);
-  const [progressSteps, setProgressSteps] = useState([]);
 
   /**
    * Convert wagmi's walletClient to an ethers v6 Signer.
@@ -55,7 +53,21 @@ export function UGFDonationTest() {
 
     try {
       const signer = await getEthersSigner();
-      const amountWei = ethers.parseEther(amount);
+      const tokenContract = new ethers.Contract(CONTRACT_ADDRESSES.baseSepolia.tyiMockUSD, MockUSDABI, signer);
+      const amountWei = ethers.parseUnits(amount, 6);
+      const tokenBalance = await tokenContract.balanceOf(address);
+
+      if (tokenBalance < amountWei) {
+        setError('You need TYI_MOCK_USD in this wallet before donating. Please use the UGF faucet and try again.');
+        return;
+      }
+
+      const currentAllowance = await tokenContract.allowance(address, CONTRACT_ADDRESSES.baseSepolia.donation);
+      if (currentAllowance < amountWei) {
+        const approveTx = await tokenContract.approve(CONTRACT_ADDRESSES.baseSepolia.donation, amountWei);
+        await approveTx.wait();
+      }
+
       const encodedData = encodeDonationTransaction(campaignId, amountWei, message);
 
       // Open the UGF modal — it handles quote, payment, and execution
@@ -71,46 +83,6 @@ export function UGFDonationTest() {
     } catch (err) {
       console.error('UGF modal error:', err);
       setError(handleUGFError(err).message);
-    }
-  };
-
-  /**
-   * Path 2: Programmatic flow using ugf.js service layer.
-   * Full control over each step with progress updates.
-   */
-  const handleDonateWithProgrammatic = async () => {
-    if (!address || !walletClient) {
-      setError('Please connect your wallet first');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setTxHash(null);
-    setProgressSteps([]);
-
-    try {
-      const signer = await getEthersSigner();
-      const provider = signer.provider;
-
-      const result = await donateWithUGF({
-        signer,
-        provider,
-        campaignId,
-        amount,
-        message,
-        onProgress: (step, data) => {
-          console.log(`[UGF ${step}]`, data);
-          setProgressSteps(prev => [...prev, { step, ...data }]);
-        },
-      });
-
-      setTxHash(result.userTxHash);
-    } catch (err) {
-      console.error('UGF programmatic donation failed:', err);
-      setError(handleUGFError(err).message);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -159,17 +131,10 @@ export function UGFDonationTest() {
         <div className="flex gap-3">
           <Button
             onClick={handleDonateWithModal}
-            disabled={isLoading || !address}
+            disabled={!address}
             className="flex-1"
           >
             🪟 Donate (Modal)
-          </Button>
-          <Button
-            onClick={handleDonateWithProgrammatic}
-            disabled={isLoading || !address}
-            className="flex-1"
-          >
-            {isLoading ? '⏳ Processing...' : '⚡ Donate (Programmatic)'}
           </Button>
         </div>
 
@@ -178,17 +143,6 @@ export function UGFDonationTest() {
         )}
 
         {/* Progress steps */}
-        {progressSteps.length > 0 && (
-          <div className="p-3 bg-gray-900 rounded text-sm space-y-1">
-            <p className="text-gray-400 font-semibold mb-1">Progress:</p>
-            {progressSteps.map((step, i) => (
-              <p key={i} className="text-gray-300">
-                <span className="text-blue-400">[{step.step}]</span> {step.status}
-              </p>
-            ))}
-          </div>
-        )}
-
         {/* Error */}
         {error && (
           <div className="p-3 bg-red-900/50 border border-red-700 text-red-100 rounded">

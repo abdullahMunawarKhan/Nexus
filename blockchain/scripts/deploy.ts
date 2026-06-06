@@ -1,5 +1,7 @@
 import hre from "hardhat";
 
+const UGF_TOKEN_ADDRESS = "0x27DC1C167AeF232bb1e21073304B526726a8727e";
+
 async function main() {
   const network = await hre.network.getOrCreate();
   const { ethers } = network;
@@ -12,22 +14,22 @@ async function main() {
   let donationTokenAddress;
   let tokenType;
 
-  // Check if TYI_MOCK_USD_ADDRESS is set in environment variables
-  // Default: Use official TYI_MOCK_USD from UGF faucet (0x27DC...727e)
-  const tyiMockUSDAddress = process.env.TYI_MOCK_USD_ADDRESS || "0x27DC1C167AeF232bb1e21073304B526726a8727e";
-  
-  if (tyiMockUSDAddress) {
-    donationTokenAddress = tyiMockUSDAddress;
-    tokenType = "TYI_MOCK_USD";
-    console.log("Using TYI_MOCK_USD at:", donationTokenAddress);
-  } else {
-    // Deploy custom MockUSD for local testing
+  // On Base Sepolia, use the official UGF token by default.
+  // On local networks, deploy MockUSD unless the address is explicitly overridden.
+  const configuredMockUsdAddress = process.env.TYI_MOCK_USD_ADDRESS?.trim();
+  const useLocalMock = hre.network.name === "hardhat" || hre.network.name === "localhost";
+
+  if (useLocalMock && !configuredMockUsdAddress) {
     const MockUSD = await ethers.getContractFactory("MockUSD");
     const mockUSD = await MockUSD.deploy();
     await mockUSD.waitForDeployment();
     donationTokenAddress = await mockUSD.getAddress();
     tokenType = "Custom MockUSD";
     console.log("Custom MockUSD deployed to:", donationTokenAddress);
+  } else {
+    donationTokenAddress = configuredMockUsdAddress || UGF_TOKEN_ADDRESS;
+    tokenType = "TYI_MOCK_USD";
+    console.log("Using TYI_MOCK_USD at:", donationTokenAddress);
   }
 
   // Deploy Donation

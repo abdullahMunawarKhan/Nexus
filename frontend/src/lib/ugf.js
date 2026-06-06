@@ -139,27 +139,6 @@ export function encodeDonationTransaction(campaignId, amount, message) {
   });
 }
 
-/**
- * Encode a donateToCampaignWithPermit call (when permit support is added to contract).
- * 
- * @param {string} payerAddress
- * @param {bigint|number|string} campaignId
- * @param {bigint} amount
- * @param {string} message
- * @param {bigint} deadline
- * @param {number} v
- * @param {string} r
- * @param {string} s
- * @returns {string} Encoded calldata (hex)
- */
-export function encodeDonationWithPermitTransaction(payerAddress, campaignId, amount, message, deadline, v, r, s) {
-  return encodeFunctionData({
-    abi: DonationABI,
-    functionName: 'donateToCampaignWithPermit',
-    args: [payerAddress, safeParseCampaignId(campaignId), BigInt(amount), message, BigInt(deadline), v, r, s],
-  });
-}
-
 // ─── Quote ───────────────────────────────────────────────────────────────────
 
 /**
@@ -176,7 +155,7 @@ export async function getDonationQuote({ payerAddress, to, data, value = '0' }) 
   const client = getUGFClient();
 
   // Build the tx_object as a JSON string (what UGF expects)
-  // Note: we MUST include 'from' field so that UGF gateway can parse payer details.
+  // The testnet SDK defaults to Base Sepolia + TYI_MOCK_USD when extra route fields are omitted.
   const txObject = JSON.stringify({
     from: payerAddress,
     to,
@@ -185,13 +164,8 @@ export async function getDonationQuote({ payerAddress, to, data, value = '0' }) 
   });
 
   const quote = await client.quote.get({
-    payment_coin: UGF_CONFIG.paymentCoin,
     payer_address: payerAddress,
-    payment_chain: UGF_CONFIG.chainId,
-    payment_chain_type: UGF_CONFIG.chainType,
     tx_object: txObject,
-    dest_chain_id: UGF_CONFIG.chainId,
-    dest_chain_type: UGF_CONFIG.chainType,
   });
 
   return quote;
@@ -210,7 +184,7 @@ export async function getDonationQuote({ payerAddress, to, data, value = '0' }) 
  */
 export async function payForGas(quote, signer, provider) {
   const client = getUGFClient();
-  return client.payment.x402.signAndSubmit(quote, signer, provider);
+  return client.payment.x402.execute({ quote, signer });
 }
 
 // ─── Execution ───────────────────────────────────────────────────────────────
@@ -316,37 +290,56 @@ export async function donateWithUGF({ signer, provider, campaignId, amount, mess
   }
   progress('auth', { status: 'Authenticated' });
 
-  // 2. Check token allowance and approve if needed
+  // 2. Check token allowance and gaslessly approve if needed.
   progress('approve', { status: 'Checking token allowance...' });
-  const readProvider = await getFallbackProvider();
+  const readProvider = signer.provider || await getFallbackProvider();
   const tokenContract = new ethers.Contract(
     resolvedTokenAddress,
     MockUSDABI,
     readProvider
   );
 
-  let currentAllowance = 0n;
-  try {
-    currentAllowance = await tokenContract.allowance(resolvedPayerAddress, resolvedDonationAddress);
-  } catch (err) {
-    console.warn('Could not fetch allowance, assuming 0:', err.message);
-  }
-
+  const currentAllowance = await tokenContract.allowance(resolvedPayerAddress, resolvedDonationAddress);
   if (currentAllowance < amountWei) {
-    progress('approve', { status: 'Approving token transfer... Please sign in wallet.' });
+    progress('approve', { status: 'Approving token transfer with UGF...' });
+    const approveData = encodeFunctionData({
+      abi: MockUSDABI,
+      functionName: 'approve',
+      args: [resolvedDonationAddress, amountWei],
+    });
 
-    // Send a standard (non-sponsored) approve transaction
-    // UGF testnet gateway only sponsors verified contracts, so standard ERC-20 approvals must be paid by the user.
-    const tx = await tokenContract.connect(signer).approve(resolvedDonationAddress, amountWei);
-    progress('approve', { status: 'Waiting for approval transaction to confirm...' });
-    await tx.wait();
+    const approveQuote = await getDonationQuote({
+      payerAddress: resolvedPayerAddress,
+      to: resolvedTokenAddress,
+      data: approveData,
+    });
 
-    progress('approve', { status: 'Token approved!' });
+    await payForGas(approveQuote, signer, provider);
+    await executeSponsoredTransaction(
+      approveQuote.digest,
+      signer,
+      async () => ({
+        to: resolvedTokenAddress,
+        data: approveData,
+        value: 0n,
+      }),
+      {
+        maxAttempts: 30,
+        intervalMs: 2000,
+        onTick: (status, attempt) => {
+          progress('approve', {
+            status: `Waiting for token approval... (attempt ${attempt})`,
+            txStatus: status.status,
+          });
+        },
+      }
+    );
+    progress('approve', { status: 'Token approved' });
   } else {
     progress('approve', { status: 'Token already approved' });
   }
 
-  // 3. Encode donation transaction (standard donateToCampaign, not permit version)
+  // 3. Encode donation transaction.
   progress('encode', { status: 'Preparing donation transaction...' });
   const encodedData = encodeDonationTransaction(campaignId, amountWei, message);
   progress('encode', { status: 'Transaction prepared' });

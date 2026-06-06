@@ -8,8 +8,23 @@ import Button from '../components/Button';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { toast } from 'sonner';
 import { useNexusWallet } from '../lib/useNexusWallet';
-import { donateWithUGF, handleUGFError } from '../lib/ugf';
+import { ethers } from 'ethers';
+import { encodeDonationTransaction, BASE_SEPOLIA_CHAIN_ID, donateWithUGF } from '../lib/ugf';
+import { CONTRACT_ADDRESSES } from '../lib/contracts';
+import MockUSDABI from '../lib/abi/MockUSD.json';
 
+
+const getUgfStepMessage = (step) => {
+  switch (step) {
+    case 'auth': return 'Authenticating with UGF...';
+    case 'approve': return 'Checking/Approving Token Allowance...';
+    case 'encode': return 'Preparing Donation...';
+    case 'quote': return 'Requesting Sponsored Gas Quote...';
+    case 'payment': return 'Signing gas fee payment...';
+    case 'execute': return 'Executing donation transaction...';
+    default: return 'Processing donation...';
+  }
+};
 
 const CampaignDetails = () => {
   const { id } = useParams();
@@ -115,78 +130,68 @@ const CampaignDetails = () => {
     }
 
     setIsDonating(true);
-    setUgfStep('initializing');
+    setUgfStep('auth');
     
     try {
       const amount = parseFloat(donationAmount);
-      let txHash;
-
-      // ─── UGF BLOCKCHAIN FLOW ──────────────────────────────────────────────
       const signer = await getSigner();
-      const provider = signer.provider;
+      const donationTokenAddress = CONTRACT_ADDRESSES.baseSepolia.tyiMockUSD;
+      const tokenContract = new ethers.Contract(donationTokenAddress, MockUSDABI, signer);
+      const donationAmountWei = ethers.parseUnits(donationAmount, 6);
 
-      const toastId = toast.loading('Initializing UGF donation...');
-
-      try {
-        const result = await donateWithUGF({
-          signer,
-          provider,
-          campaignId: campaign.id,
-          amount: donationAmount,
-          message: `Donation for ${campaign.title}`,
-          onProgress: (step, data) => {
-            setUgfStep(step);
-            toast.loading(data.status, { id: toastId });
-          },
-        });
-
-        txHash = result.userTxHash;
-        toast.success('Blockchain transaction successful!', { id: toastId });
-      } catch (ugfErr) {
-        console.error("UGF Flow failed:", ugfErr);
-        const friendlyError = handleUGFError(ugfErr);
-        toast.error(friendlyError.message, { id: toastId });
-        throw ugfErr; // Re-throw to halt database update
+      const tokenBalance = await tokenContract.balanceOf(address);
+      if (tokenBalance < donationAmountWei) {
+        toast.error('You need TYI_MOCK_USD in this wallet before donating. Please use the UGF faucet and try again.');
+        setIsDonating(false);
+        setUgfStep(null);
+        return;
       }
 
-      // ─── DATABASE UPDATE FLOW ──────────────────────────────────────────────
-      // 1. Insert Donation Log
+      const toastId = toast.loading('Initializing UGF gasless donation...');
+
+      const result = await donateWithUGF({
+        signer,
+        provider: signer.provider,
+        campaignId: campaign.id,
+        amount: donationAmount,
+        message: `Donation for ${campaign.title}`,
+        onProgress: (step, data) => {
+          setUgfStep(step);
+          toast.loading(data.status, { id: toastId });
+        }
+      });
+
+      // Record the donation in the database
+      toast.loading('Saving donation details in database...', { id: toastId });
       const { data: newDonation, error: donationError } = await supabase
         .from('donation_logs')
         .insert({
           campaign_id: id,
           donor_id: user.id,
           amount: amount,
-          tx_hash: txHash
+          tx_hash: result.userTxHash,
         })
         .select()
         .single();
 
       if (donationError) throw donationError;
 
-      // Donation receipt generation has been disabled per user request
-
-
-      // Update local campaign state dynamically
-      const newDonationLogItem = { amount: amount };
-      const updatedDonationLogs = campaign.donation_logs 
-        ? [...campaign.donation_logs, newDonationLogItem] 
+      const newDonationLogItem = { amount };
+      const updatedDonationLogs = campaign.donation_logs
+        ? [...campaign.donation_logs, newDonationLogItem]
         : [newDonationLogItem];
 
       setCampaign({
         ...campaign,
         donation_logs: updatedDonationLogs,
-        raised_amount: (parseFloat(campaign.raised_amount) || 0) + amount
+        raised_amount: (parseFloat(campaign.raised_amount) || 0) + amount,
       });
       setDonations([newDonation, ...donations.slice(0, 4)]);
-      toast.success(`Thank you! Your donation of $${donationAmount} was successful.`);
+      toast.success(`Thank you! Your donation of $${amount} was successful.`, { id: toastId });
       setDonationAmount('');
     } catch (err) {
       console.error("Donation failed:", err);
-      // Only show generic error if UGF has already failed/shown its error
-      if (ugfStep === null || ugfStep === 'initializing') {
-        toast.error('Donation failed. Please check your wallet connection and try again.');
-      }
+      toast.error(`Donation failed: ${err.message || 'Please check your wallet connection and try again.'}`);
     } finally {
       setIsDonating(false);
       setUgfStep(null);
@@ -300,7 +305,13 @@ const CampaignDetails = () => {
              >
                {isConnected ? 'Donate Now' : 'Connect Wallet to Donate'}
              </Button>
-           </form>
+             {isDonating && ugfStep && (
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-zinc-500 bg-zinc-100/50 py-3 px-4 rounded-xl border border-zinc-200/50 animate-pulse mt-2">
+                <div className="w-1.5 h-1.5 bg-black rounded-full animate-bounce"></div>
+                <span>{getUgfStepMessage(ugfStep)}</span>
+              </div>
+            )}
+          </form>
 
             <div className="flex items-center justify-center gap-1 text-xs text-zinc-500 font-bold uppercase tracking-widest pt-2">
               <ShieldCheck size={14} className="text-black" />
@@ -408,7 +419,7 @@ const CampaignDetails = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                   <span className="font-black text-xl text-black">+${d.amount.toLocaleString()}</span>
+                   <span className="font-black text-xl text-black">+${d.amount}</span>
                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mt-1">Confirmed</p>
                 </div>
               </div>

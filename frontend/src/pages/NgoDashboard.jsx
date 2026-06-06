@@ -223,7 +223,7 @@ const campaignSchema = z.object({
 
         // 3. Submit transaction to the blockchain
         toast.loading('Please sign the transaction in your wallet...', { id: toastId });
-        const goalAmountWei = BigInt(Math.floor(data.goal_amount)) * BigInt(10 ** 18);
+        const goalAmountWei = ethers.parseUnits(data.goal_amount.toString(), 6);
 
         const signer = await getSigner();
         const donationContract = new ethers.Contract(

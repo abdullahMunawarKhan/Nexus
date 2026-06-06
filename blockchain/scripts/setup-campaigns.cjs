@@ -10,7 +10,7 @@
 
 const { ethers } = require('ethers');
 
-const DONATION_CONTRACT = '0xB509489E5aC6B21Ff2882F70801dE2764Ac5eCAD';
+const DONATION_CONTRACT = process.env.DONATION_CONTRACT_ADDRESS || '0x2b371091821E6afdf076749943aaF370c0eb491a';
 const RPC_URL = process.env.BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const PRIVATE_KEY = process.env.BASE_SEPOLIA_PRIVATE_KEY || '0x71bb85cb0ab8f2de71d4234ea70783c278a3b63a86455ebc10b4df68008b4ebd';
 

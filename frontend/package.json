@@ -1,4 +1,3 @@
-
 {
   "name": "blockchain",
   "private": true,
@@ -10,8 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview"
   },
+  "overrides": {
+    "@noble/hashes": "1.7.1"
+  },
   "dependencies": {
-    "@gemini-wallet/core": "^0.3.2",
     "@hookform/resolvers": "^5.2.2",
     "@rainbow-me/rainbowkit": "^2.2.11",
     "@supabase/supabase-js": "^2.105.4",
@@ -30,7 +31,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "viem": "^2.49.3",
-    "wagmi": "^2.19.5",
+    "wagmi": "^2.13.9",
     "zod": "^4.4.3"
   },
   "devDependencies": {

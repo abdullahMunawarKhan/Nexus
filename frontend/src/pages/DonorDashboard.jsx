@@ -235,7 +235,7 @@ const DonorDashboard = () => {
                       </div>
                       <div className="text-right flex items-center gap-6">
                         <div>
-                          <p className="text-xl font-black text-black">+${parseFloat(d.amount).toLocaleString()}</p>
+                          <p className="text-xl font-black text-black">+${d.amount}</p>
                           <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">{new Date(d.created_at).toLocaleDateString()}</p>
                         </div>
                         <div className="w-32 flex justify-end">

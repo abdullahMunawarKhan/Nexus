@@ -5,6 +5,9 @@ import { ShieldCheck as ShieldIcon, History as HistoryIcon, ExternalLink as Exte
 const Transparency = () => {
   const [donations, setDonations] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
+  const [verifiedNgos, setVerifiedNgos] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [networkNodes, setNetworkNodes] = useState(14281);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -18,10 +21,17 @@ const Transparency = () => {
 
         const { data: donationData } = await supabase
           .from('donation_logs')
-          .select('*, campaigns(title)')
+          .select('*, campaigns(title), users(full_name)')
           .order('created_at', { ascending: false });
 
         if (donationData) setDonations(donationData);
+
+        const { data: ngoData } = await supabase
+          .from('ngos')
+          .select('*')
+          .eq('verification_status', 'verified');
+
+        if (ngoData) setVerifiedNgos(ngoData);
       } catch (error) {
         console.error("Error fetching transparency data:", error);
       } finally {
@@ -32,12 +42,29 @@ const Transparency = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNetworkNodes(prev => prev + (Math.random() > 0.5 ? 1 : -1));
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   const totalDonations = campaigns.reduce((acc, c) => {
     const raisedAmount = c.donation_logs
       ? c.donation_logs.reduce((sum, d) => sum + parseFloat(d.amount), 0)
       : parseFloat(c.raised_amount || 0);
     return acc + raisedAmount;
   }, 0);
+
+  const filteredDonations = donations.filter(tx => {
+    const campaignTitle = tx.campaigns?.title || '';
+    const txHash = tx.tx_hash || '';
+    const donorName = tx.users?.full_name || '';
+    const query = searchQuery.toLowerCase();
+    return txHash.toLowerCase().includes(query) || 
+           campaignTitle.toLowerCase().includes(query) ||
+           donorName.toLowerCase().includes(query);
+  });
 
   if (loading) {
     return (
@@ -65,7 +92,7 @@ From donation inflows to NGO spending records, anyone can monitor how funds are 
           { label: 'Total Value Distributed', value: `$${totalDonations.toLocaleString()}`, color: 'bg-zinc-100 text-zinc-900' },
           { label: 'Active Campaigns', value: campaigns.length, color: 'bg-zinc-100 text-zinc-900' },
           { label: 'Platform Uptime', value: '100%', color: 'bg-zinc-100 text-zinc-900' },
-          { label: 'Network Nodes', value: '14,281', color: 'bg-zinc-100 text-zinc-900' },
+          { label: 'Network Nodes', value: networkNodes.toLocaleString(), color: 'bg-zinc-100 text-zinc-900' },
         ].map((stat, i) => (
           <div key={i} className={`p-6 rounded-3xl ${stat.color} flex flex-col items-center justify-center text-center space-y-1`}>
             <span className="text-sm font-bold opacity-70">{stat.label}</span>
@@ -86,7 +113,9 @@ From donation inflows to NGO spending records, anyone can monitor how funds are 
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input 
                 type="text" 
-                placeholder="Search tx hash..." 
+                placeholder="Search tx hash or campaign..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-zinc-500/20 focus:border-black"
               />
             </div>
@@ -98,27 +127,37 @@ From donation inflows to NGO spending records, anyone can monitor how funds are 
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Transaction Hash</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Donor</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Campaign</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Amount</th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {donations.length > 0 ? donations.map((tx) => {
+                  {filteredDonations.length > 0 ? filteredDonations.map((tx) => {
                     const campaignTitle = tx.campaigns?.title || 'Unknown';
+                    const donorName = tx.users?.full_name || 'Anonymous';
                     return (
                       <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="flex items-center gap-2 font-mono text-sm text-zinc-900">
+                          <a 
+                            href={`https://sepolia.basescan.org/tx/${tx.tx_hash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 font-mono text-sm text-zinc-900 hover:text-lime-600 transition-colors"
+                          >
                             <span className="truncate w-32">{tx.tx_hash}</span>
                             <ExternalIcon size={14} className="shrink-0" />
-                          </div>
+                          </a>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-sm font-semibold text-slate-700">{donorName}</span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="text-sm font-semibold text-slate-700">{campaignTitle}</span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className="text-sm font-bold text-slate-900">${parseFloat(tx.amount).toLocaleString()}</span>
+                          <span className="text-sm font-bold text-slate-900">${tx.amount}</span>
                         </td>
                         <td className="px-6 py-4">
                           <span className="px-2 py-1 bg-zinc-100 text-zinc-900 rounded-full text-[10px] font-bold uppercase tracking-wider">
@@ -129,8 +168,8 @@ From donation inflows to NGO spending records, anyone can monitor how funds are 
                     );
                   }) : (
                     <tr>
-                      <td colSpan="4" className="px-6 py-12 text-center text-slate-400">
-                        No transactions found in the ledger yet.
+                      <td colSpan="5" className="px-6 py-12 text-center text-slate-400">
+                        No matching transactions found in the ledger.
                       </td>
                     </tr>
                   )}
@@ -152,12 +191,18 @@ From donation inflows to NGO spending records, anyone can monitor how funds are 
               We only partner with NGOs that meet our strict transparency standards. All partner accounts are multi-sig wallets managed by verified humanitarian leaders.
             </p>
             <div className="space-y-4">
-              {['Red Cross International', 'Save the Children', 'Global Relief Fund'].map((ngo, i) => (
-                <div key={i} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                  <span className="text-sm font-medium">{ngo}</span>
-                  <ShieldIcon size={16} className="text-zinc-500" />
+              {verifiedNgos.length > 0 ? (
+                verifiedNgos.map((ngo) => (
+                  <div key={ngo.id} className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
+                    <span className="text-sm font-medium">{ngo.organization_name}</span>
+                    <ShieldIcon size={16} className="text-lime-400" />
+                  </div>
+                ))
+              ) : (
+                <div className="text-xs text-zinc-500 p-2 bg-white/5 rounded-xl text-center border border-white/10">
+                  No verified NGOs registered on the network yet.
                 </div>
-              ))}
+              )}
             </div>
             <button className="w-full py-3 bg-white text-black hover:bg-zinc-200 rounded-xl font-bold transition-all">
               Apply as NGO
